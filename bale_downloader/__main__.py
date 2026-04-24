@@ -18,7 +18,8 @@ def load_stored_offset() -> int:
 
 def shutdown(offset: int):
     print("Shutting down")
-    save_to_file(OFFSET_FILE_NAME, str(offset))
+    if offset:
+        save_to_file(OFFSET_FILE_NAME, str(offset + 1))
 
 
 def is_allowed_chat_id(func):
@@ -32,6 +33,7 @@ def is_allowed_chat_id(func):
 @is_allowed_chat_id
 def process_message(msg, chat_id):
     try:
+        print(f"Proccessing {msg}")
         res_message, high_quality_file_path, file_paths, thumbnail_paths = get_url_content(msg)
         url = google_drive.upload_files_to_drive(high_quality_file_path)
         send_message(chat_id, GOOGLE_DRIVE_MESSAGE_TEMPLATE.format(url))
@@ -43,8 +45,9 @@ def process_message(msg, chat_id):
 
 
 def main():
-    offset = load_stored_offset()
+    offset = None
     try:
+        offset = load_stored_offset()
         while True:
             messages, offset = listen_for_updates(offset)
             for msg, chat_id in messages:
