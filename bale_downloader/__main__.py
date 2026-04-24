@@ -4,10 +4,21 @@ from bale_downloader.bale import listen_for_updates, send_message
 from bale_downloader.config import ALLOWED_CHAT_IDS
 from bale_downloader.downloader import get_url_content
 from bale_downloader.google_drive import GoogleDrive
+from bale_downloader.utils import save_to_file, load_file_content
 
 GOOGLE_DRIVE_MESSAGE_TEMPLATE = "File Urls:\n{}"
+OFFSET_FILE_NAME = "bale-offset"
 
 google_drive = GoogleDrive()
+
+
+def load_stored_offset() -> int:
+    offset = load_file_content(OFFSET_FILE_NAME)
+    return int(offset) if offset else None
+
+def shutdown(offset: int):
+    print("Shutting down")
+    save_to_file(OFFSET_FILE_NAME, str(offset))
 
 
 def is_allowed_chat_id(func):
@@ -25,18 +36,25 @@ def process_message(msg, chat_id):
         url = google_drive.upload_files_to_drive(high_quality_file_path)
         send_message(chat_id, GOOGLE_DRIVE_MESSAGE_TEMPLATE.format(url))
         send_message(chat_id, res_message, file_paths, thumbnail_paths)
+    except KeyboardInterrupt as e:
+        raise e
     except Exception as e:
         print(e)
 
 
 def main():
-    offset = None
-    while True:
-        messages, offset = listen_for_updates(offset)
-        for msg, chat_id in messages:
-            process_message(msg, chat_id)
-        sleep(5)
-        break
+    offset = load_stored_offset()
+    try:
+        while True:
+            messages, offset = listen_for_updates(offset)
+            for msg, chat_id in messages:
+                process_message(msg, chat_id)
+            sleep(5)
+            break
+    except KeyboardInterrupt:
+        shutdown(offset)
+    except Exception as e:
+        raise e
 
 
 if __name__ == "__main__":
