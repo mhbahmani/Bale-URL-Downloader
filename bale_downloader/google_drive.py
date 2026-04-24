@@ -43,9 +43,9 @@ class GoogleDrive:
 
         return creds
 
-    def upload_files_to_drive(self, file_path: str) -> str:
+    def upload_file_to_drive(self, file_path: str) -> str:
         file_id = self._upload_file(file_path)
-        return self.generate_file_url_by_id(file_id)
+        return self.generate_file_url_by_id(file_id)[0]
 
     def _upload_file(self, file_path: str, folder_id: Optional[str] = GOOGLE_DRIVE_FOLDER_ID) -> List[str]:
         """
