@@ -20,6 +20,10 @@ def send_message(chat_id, text, file_paths=None, thumbnail_paths=None, protected
         url = f'{BASE_URL}/sendMessage'
         data = {'chat_id': chat_id, 'text': text}
         response = requests.post(url, json=data)
+        if response.status_code // 100 == 2:
+            print("Sending message to bale failed with status code ", response.status_code)
+            return False
+        # print(response.json(), response.status_code)
         return True
 
     if file_paths:
