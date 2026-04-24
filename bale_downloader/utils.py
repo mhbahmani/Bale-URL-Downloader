@@ -1,4 +1,5 @@
 from pathlib import Path
+import requests
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -14,3 +15,15 @@ def load_file_content(filename: str) -> str:
     with open(full_path, 'r', encoding='utf-8') as file:
         file_content = file.read()
     return file_content
+
+def download_file(url, path):
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            with open(path, 'wb') as file:
+                file.write(response.content)
+            print("Download complete!")
+        else:
+            print("Failed to download the file.")
+    except Exception as e:
+        print(f"An error occurred while downloading the file: {e}")
