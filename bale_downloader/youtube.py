@@ -11,6 +11,7 @@ from bale_downloader.config import (
     GOOD_QUALITY_SIZE_LIMIT_MB,
     OUTPUT_DIR,
     TARGET_SIZE_MB,
+    SPLIT_VIDEO_IF_ITS_TOO_LARGE,
 )
 
 NUM_RETRY = 3
@@ -86,7 +87,6 @@ class Youtube:
 
         filtered_valid_formats = []
         if valid_formats:
-            print("yeessss")
             for i in valid_formats:
                 if i.get("height", 0):
                     filtered_valid_formats.append(i)
@@ -94,7 +94,6 @@ class Youtube:
             best = max(filtered_valid_formats, key=lambda x: x.get("height", 0), default=None)
             if best:
                 return best["format_id"]
-        print("NOOOOO")
         return None
 
     def _get_video_low_quality_format_id(self, url: str, formats: list[dict] = None) -> str:
@@ -120,6 +119,7 @@ class Youtube:
         print("No valid formats")
         return None
 
+    # Deprecated
     def _run_download_command(self, url: str, format_id: str):
         result = subprocess.run([
             "yt-dlp",
@@ -142,83 +142,80 @@ class Youtube:
             'writethumbnail': True,
             'postprocessors': [{'key': 'FFmpegThumbnailsConvertor', 'format': 'jpg'}],
             'cookiefile': COOKIE_PATH,
+            'quiet': True,
+            'no_warnings': True,
+            'retries': NUM_RETRY,
+            'fragment_retries': NUM_RETRY,
         }
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url, download=True)
-            return ydl.prepare_filename(info_dict)
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info_dict = ydl.extract_info(url, download=True)
+                return ydl.prepare_filename(info_dict)
+        except yt_dlp.utils.DownloadError as e:
+            print(f"Download failed: {e}")
+            return None
 
     def get_content(self, url: str) -> tuple[str, str, list[str], list[str]]:
-        print("URLLLLL " + url)
         Youtube.clear_output_dir()
-        counter = 0
-        print("Goint in")
 
-        while True:
-            if counter >= NUM_RETRY:
-                return f"Download failed after {NUM_RETRY} retries", None, None, None
+        info = self._get_video_info(url)
+        formats = info.get("formats", [])
+        if formats:
+            print("Formats downloaded")
+        else:
+            print("Formats not available")
+        high_quality_file_path = low_quality_file_path = None
+        high_quality_format_id = self._get_video_high_quality_format_id(url, formats)
+        print(f"High quality: {high_quality_format_id}")
+        if high_quality_format_id:
+            print("Best high quality format found")
+            high_quality_file_path = self._download_video(url, high_quality_format_id)
 
-            info = self._get_video_info(url)
-            formats = info.get("formats", [])
-            if formats:
-                print("Formats downloaded")
-            else:
-                print("Formats not available")
-            high_quality_file_path = low_quality_file_path = None
-            high_quality_format_id = self._get_video_high_quality_format_id(url, formats)
-            print(f"High quality: {high_quality_format_id}")
-            if high_quality_format_id:
-                print("Best high quality format found")
-                high_quality_file_path = self._download_video(url, high_quality_format_id)
+        low_quality_format_id = self._get_video_low_quality_format_id(url, formats)
+        print(f"Low quality: {low_quality_format_id}")
+        if low_quality_format_id:
+            print("Best low quality format found, downloading without compression")
+            # download, low_quality_file_path = self._run_download_command(url, low_quality_format_id)
+            low_quality_file_path = self._download_video(url, low_quality_format_id)
+        elif SPLIT_VIDEO_IF_ITS_TOO_LARGE:
+            print("No best format found, falling back to compression")
+            duration = float(info.get("duration", 0))
+            if duration == 0:
+                raise Exception("Could not determine duration")
 
-            low_quality_format_id = self._get_video_low_quality_format_id(url, formats)
-            print(f"Low quality: {low_quality_format_id}")
-            if low_quality_format_id:
-                print("Best low quality format found, downloading without compression")
-                download, low_quality_file_path = self._run_download_command(url, low_quality_format_id)
-            else:
-                print("No best format found, falling back to compression")
-                duration = float(info.get("duration", 0))
-                if duration == 0:
-                    raise Exception("Could not determine duration")
+            audio_bitrate = 128
 
-                audio_bitrate = 128
+            total_bitrate = int((TARGET_SIZE_MB * 8192) / duration)
+            video_bitrate = max(total_bitrate - audio_bitrate, 100)
+            subprocess.run([
+                "yt-dlp",
+                url,
+                "-o", f"{OUTPUT_DIR}/%(title)s.%(ext)s",
 
-                total_bitrate = int((TARGET_SIZE_MB * 8192) / duration)
-                video_bitrate = max(total_bitrate - audio_bitrate, 100)
-                download = subprocess.run([
-                    "yt-dlp",
-                    url,
-                    "-o", f"{OUTPUT_DIR}/%(title)s.%(ext)s",
+                "--format", "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]",
+                "--merge-output-format", "mp4",
 
-                    "--format", "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]",
-                    "--merge-output-format", "mp4",
+                "--write-thumbnail",
+                "--convert-thumbnails", "jpg",
 
-                    "--write-thumbnail",
-                    "--convert-thumbnails", "jpg",
+                "--cookies", COOKIE_PATH,
 
-                    "--cookies", COOKIE_PATH,
-
-                    "--postprocessor-args",
-                    f"ffmpeg:-b:v {video_bitrate}k -b:a {audio_bitrate}k",
-                ])
-
-            if download.returncode != 0:
-                sleep(5)
-                counter += 1
-                continue
-
-            break
+                "--postprocessor-args",
+                f"ffmpeg:-b:v {video_bitrate}k -b:a {audio_bitrate}k",
+            ])
 
         files = os.listdir(OUTPUT_DIR)
 
         video_path = None
         thumb_full_path = None
 
+        if low_quality_file_path:
+            video_path = low_quality_file_path
         for f in files:
             if f.endswith(".jpg"):
                 thumb_full_path = os.path.join(OUTPUT_DIR, f)
-            elif "High-Quality-Version" not in f:
+            elif not video_path and "High-Quality-Version" not in f:
                 video_path = os.path.join(OUTPUT_DIR, f)
 
         video_paths = split_video(video_path) if video_path else []
