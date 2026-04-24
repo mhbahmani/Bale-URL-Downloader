@@ -37,8 +37,9 @@ def process_message(msg, chat_id):
         print(f"Proccessing {msg}")
         send_message(chat_id, GOT_YOUR_URL_MESSAGE)
         res_message, high_quality_file_path, file_paths, thumbnail_paths = get_url_content(msg)
-        url = google_drive.upload_file_to_drive(high_quality_file_path)
-        send_message(chat_id, GOOGLE_DRIVE_MESSAGE_TEMPLATE.format(url))
+        if high_quality_file_path:
+            url = google_drive.upload_file_to_drive(high_quality_file_path)
+            send_message(chat_id, GOOGLE_DRIVE_MESSAGE_TEMPLATE.format(url))
         send_message(chat_id, res_message, file_paths, thumbnail_paths)
     except KeyboardInterrupt as e:
         raise e
