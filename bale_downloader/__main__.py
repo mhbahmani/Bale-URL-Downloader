@@ -1,6 +1,6 @@
 from time import sleep
 
-from bale_downloader.bot import listen_for_updates, send_message
+from bale_downloader.bale import listen_for_updates, send_message
 from bale_downloader.config import ALLOWED_CHAT_IDS
 from bale_downloader.downloader import get_url_content
 from bale_downloader.google_drive import GoogleDrive
