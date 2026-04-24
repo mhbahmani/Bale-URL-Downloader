@@ -173,7 +173,7 @@ poetry.toml
 # End of https://www.toptal.com/developers/gitignore/api/python
 token.json
 coo
-firefox-cockies
+firefox-cookies
 credentials.json
 yt-output
 decompress.py
