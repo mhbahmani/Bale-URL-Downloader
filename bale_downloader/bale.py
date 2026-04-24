@@ -15,12 +15,11 @@ MEDIA_GROUP_LIMIT = 10
 BASE_URL = f'https://tapi.bale.ai/bot{BOT_TOKEN}'
 
 
-def send_message(chat_id, text, file_paths=None, thumbnail_paths=None, protected=True):
+def send_message(chat_id, text, file_paths=None, thumbnail_paths=None, protected=False):
     if not file_paths:
         url = f'{BASE_URL}/sendMessage'
         data = {'chat_id': chat_id, 'text': text}
         response = requests.post(url, json=data)
-        print(response.json(), response.status_code)
         return True
 
     if file_paths:
