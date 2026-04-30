@@ -5,7 +5,7 @@ from bale_downloader.bale import listen_for_updates, send_message
 from bale_downloader.config import ALLOWED_CHAT_IDS
 from bale_downloader.downloader import get_url_content
 from bale_downloader.google_drive import GoogleDrive
-from bale_downloader.utils import save_to_file, load_file_content
+from bale_downloader.utils import save_to_file, load_file_content, sanitize_url
 
 GOOGLE_DRIVE_MESSAGE_TEMPLATE = "Google Drive URL: \n{}"
 GOT_YOUR_URL_MESSAGE = "📥 Got your url, working on it ..."
@@ -37,7 +37,8 @@ def process_message(msg, chat_id):
     try:
         print(f"Proccessing {msg}")
         send_message(chat_id, GOT_YOUR_URL_MESSAGE)
-        res_message, high_quality_file_path, file_paths, thumbnail_paths = get_url_content(msg)
+        sanitized_url = sanitize_url(msg)
+        res_message, high_quality_file_path, file_paths, thumbnail_paths = get_url_content(sanitized_url)
         if high_quality_file_path:
             url = google_drive.upload_file_to_drive(high_quality_file_path)
             send_message(chat_id, GOOGLE_DRIVE_MESSAGE_TEMPLATE.format(url))
