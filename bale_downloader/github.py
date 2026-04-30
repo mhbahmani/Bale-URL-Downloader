@@ -1,4 +1,5 @@
 from bale_downloader.utils import download_file
+from bale_downloader.config import GITHUB_OUTPUT_DIR
 
 from enum import Enum
 
@@ -62,12 +63,15 @@ class Github:
         pass
 
     def _donwload_single_file(self):
-        file_path = self._get_file_name_to_save()
+        file_path = self._get_file_path_to_save()
         download_file(
             self._generate_single_file_download_url(),
             file_path
         )
         return file_path
+
+    def _get_file_path_to_save(self) -> str:
+        return f"{GITHUB_OUTPUT_DIR}/{self._get_file_name_to_save}"
 
     def _get_file_name_to_save(self) -> str:
         return self.file_path.replace("/", "-")
