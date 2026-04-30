@@ -58,13 +58,17 @@ def send_file(file_path, chat_id, caption=None):
 
 
 def send_files(file_paths, chat_id, caption=None):
-    if len(file_paths) <= 10:
-        return send_media_group(file_paths, chat_id, caption)
-
     results = []
-    for file_path in file_paths:
-        results.append(send_single_file(file_path, chat_id, caption))
-    return all(results)
+    if 1 < len(file_paths) <= MEDIA_GROUP_LIMIT:
+        return send_media_group(file_paths, chat_id, caption)
+    elif len(file_paths) > MEDIA_GROUP_LIMIT:
+        # More than MEDIA_GROUP_LIMIT files
+        for i in range(0, len(file_paths), MEDIA_GROUP_LIMIT):
+            results.append(send_media_group(file_paths[i:i+MEDIA_GROUP_LIMIT]))
+        return all(results)
+    else:
+        # Only one file
+        return send_single_file(file_paths[0], chat_id, caption)
 
 
 def send_single_file(file_path, chat_id, caption=None):
