@@ -1,3 +1,4 @@
+import traceback
 from time import sleep
 
 from bale_downloader.bale import listen_for_updates, send_message
@@ -59,7 +60,8 @@ def main():
             sleep(5)
     except KeyboardInterrupt:
         shutdown(offset)
-    except Exception:
+    except Exception as e:
+        traceback.print_exc()
         shutdown(offset)
 
 
