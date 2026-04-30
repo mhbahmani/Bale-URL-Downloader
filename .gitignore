@@ -176,4 +176,7 @@ coo
 firefox-cookies
 credentials.json
 yt-output
+twitter-output
+webpage-output
+github-output
 decompress.py
