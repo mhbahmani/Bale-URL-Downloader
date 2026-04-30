@@ -3,7 +3,7 @@ from enum import Enum
 from bale_downloader.youtube import Youtube
 from bale_downloader.twitter import Twitter
 from bale_downloader.github import Github
-# from bale_downloader.webpage import Webpage
+from bale_downloader.webpage import Webpage
 
 
 class Site(Enum):
@@ -11,6 +11,7 @@ class Site(Enum):
     TWITTER = "twitter"
     INSTAGRAM = "instagram"
     GITHUB = "github"
+    WEBPAGE = "webpage"
 
 
 def get_url_content(url: str) -> tuple[str, str, list[str], list[str]]:
@@ -21,8 +22,8 @@ def get_url_content(url: str) -> tuple[str, str, list[str], list[str]]:
         return Twitter().get_content(url)
     if site == Site.GITHUB:
         return Github(url).get_content()
-    # if site is Site.Webpage:
-    #     return Webpage().get_content(url)
+    if site is Site.WEBPAGE:
+        return Webpage().get_content(url)
     raise ValueError(f"Unsupported site: {site}")
 
 
@@ -40,4 +41,4 @@ def get_url_site(url: str):
     elif "github.com" in url:
         return Site.GITHUB
     else:
-        return None
+        return Site.WEBPAGE
