@@ -1,4 +1,6 @@
 from pathlib import Path
+from urllib.parse import unquote
+
 import requests
 
 
@@ -27,3 +29,6 @@ def download_file(url, path):
             print("Failed to download the file.")
     except Exception as e:
         print(f"An error occurred while downloading the file: {e}")
+
+def sanitize_url(url):
+    return unquote(url)
