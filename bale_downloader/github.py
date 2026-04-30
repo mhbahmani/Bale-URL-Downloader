@@ -71,7 +71,7 @@ class Github:
         return file_path
 
     def _get_file_path_to_save(self) -> str:
-        return f"{GITHUB_OUTPUT_DIR}/{self._get_file_name_to_save}"
+        return f"{GITHUB_OUTPUT_DIR}/{self._get_file_name_to_save()}"
 
     def _get_file_name_to_save(self) -> str:
         return self.file_path.replace("/", "-")
