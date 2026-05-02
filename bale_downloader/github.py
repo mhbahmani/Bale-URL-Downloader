@@ -1,8 +1,9 @@
-from bale_downloader.utils import download_file
+from bale_downloader.utils import download_file, compress_directory_to_zip, clear_directory
 from bale_downloader.config import GITHUB_OUTPUT_DIR
 
 from enum import Enum
 
+import git
 import re
 
 
@@ -45,10 +46,11 @@ class Github:
             return Github.GithubURLType.WEBPAGE
         return Github.GithubURLType.REPO
 
-    def get_content(self) -> tuple[str, str, list[str], list[str]]:
+    def get_content(self) -> tuple[str, str | None, list[str], list[str]]:
+        clear_directory(GITHUB_OUTPUT_DIR)
         if self.url_type == Github.GithubURLType.REPO:
             print("Clone the whole repo")
-            return self._clone_repo()
+            return f"{self.group_name}/{self.project_name}", None, [self._clone_repo()], []
         if self.url_type == Github.GithubURLType.WEBPAGE:
             print("Export like a webpage")
             return self._export_webpage()
@@ -56,8 +58,26 @@ class Github:
             print("Download single file")
             return self.file_path, None, [self._donwload_single_file()], []
 
-    def _clone_repo(self):
-        pass
+    def _clone_repo(self) -> str:
+        # Clone and compress
+        repo_dir = self._get_repo_clone_dir()
+        git.Repo.clone_from(
+            self.url,
+            repo_dir,
+            single_branch=True,
+            depth=1
+        )
+        # Download zip file
+        return compress_directory_to_zip(repo_dir)
+        # repo_zip_path = self._get_repo_zip_path()
+        # download_file(
+        #     self._get_zip_download_url(),
+        #     repo_zip_path
+        # )
+        # return repo_zip_path
+
+    def _get_zip_download_url(self) -> str:
+        return f"https://github.com/{self.group_name}/{self.project_name}/archive/refs/heads/{self.branch}.zip"
 
     def _export_webpage(self):
         pass
@@ -70,8 +90,14 @@ class Github:
         )
         return file_path
 
+    def _get_repo_clone_dir(self) -> str:
+        return f"./{GITHUB_OUTPUT_DIR}/{self.project_name}"
+
+    def _get_repo_zip_path(self) -> str:
+        return f"./{GITHUB_OUTPUT_DIR}/{self.project_name}.zip"
+
     def _get_file_path_to_save(self) -> str:
-        return f"{GITHUB_OUTPUT_DIR}/{self._get_file_name_to_save()}"
+        return f"./{GITHUB_OUTPUT_DIR}/{self._get_file_name_to_save()}"
 
     def _get_file_name_to_save(self) -> str:
         return self.file_path.replace("/", "-")
