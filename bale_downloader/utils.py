@@ -2,6 +2,8 @@ from pathlib import Path
 from urllib.parse import unquote
 
 import requests
+import shutil
+import os
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -29,6 +31,10 @@ def download_file(url, path):
             print("Failed to download the file.")
     except Exception as e:
         print(f"An error occurred while downloading the file: {e}")
+
+def compress_directory_to_zip(directory: str) -> str:
+    shutil.make_archive(directory, 'zip', directory)
+    return directory.rstrip("/") + ".zip"
 
 def sanitize_url(url):
     return unquote(url)
