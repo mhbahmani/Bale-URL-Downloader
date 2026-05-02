@@ -136,9 +136,10 @@ class Youtube:
             return downloaded_file_path
 
     def _download_video(self, url: str, format_id: str) -> str:
+        output_name_template = f'{OUTPUT_DIR}/%(title)s-{format_id}.%(ext)s'
         ydl_opts = {
             'format': format_id,
-            'outtmpl': f'{OUTPUT_DIR}/%(title)s-High-Quality-Version.%(ext)s',
+            'outtmpl': output_name_template,
             'writethumbnail': True,
             'postprocessors': [{'key': 'FFmpegThumbnailsConvertor', 'format': 'jpg'}],
             'cookiefile': COOKIE_PATH,
@@ -207,18 +208,13 @@ class Youtube:
 
         files = os.listdir(OUTPUT_DIR)
 
-        video_path = None
         thumb_full_path = None
 
-        if low_quality_file_path:
-            video_path = low_quality_file_path
         for f in files:
             if f.endswith(".jpg"):
                 thumb_full_path = os.path.join(OUTPUT_DIR, f)
-            elif not video_path and "High-Quality-Version" not in f:
-                video_path = os.path.join(OUTPUT_DIR, f)
 
-        video_paths = split_video(video_path) if video_path else []
+        video_paths = split_video(low_quality_file_path) if low_quality_file_path else []
 
         return "", high_quality_file_path, video_paths, [thumb_full_path]
 
